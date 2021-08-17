@@ -59,80 +59,70 @@
 
         } // Function (read one byte)
 
-//      ============================================================ write two bytes
-        void WriteWord(Word DataToWrite, u32 Address, u32& Cycles) {
-       
-            Data[Address] = DataToWrite & 0xFF;
-            Data[Address + 1] = (DataToWrite >> 8);
-            Cycles -= 2;
-
-        } // Function WriteWord()
-//      =========================
-
     }; // End struct memory
 //  =======================
     
 //  ===================
     struct m6502::CPU {
-    
+
         Word PC; // program counter
-        Word SP; // stack pointer
-    
+        Byte SP; // stack pointer
+
         Byte A, X, Y; // registers
-    
+
         // status flags below
-    
-        Byte C : 1; 
+
+        Byte C : 1;
         Byte Z : 1;
         Byte I : 1;
         Byte D : 1;
         Byte B : 1;
         Byte V : 1;
         Byte N : 1;
-    
+
 //      =========================
         void Reset(Mem& memory) {
-    
+
             PC = 0xFFFC;
-            SP = 0x0100;
-            D  = 0;
+            SP = 0xFF;
+            D = 0;
             C = Z = I = D = B = V = N = 0;
             A = X = Y = 0;
             memory.Initialise();
-    
+
         } // function Reset()
-    //  =====================
-    
-    //  ==========================================
+//      =====================
+
+//      ================================================
         Byte FetchByte(u32& Cycles, const Mem& memory) {
-    
+
             Byte Data = memory[PC];
             PC++;
             Cycles--;
-    
+
             return Data;
-    
+
         } // Function Fetch()
-    //  =====================
-    
-    //  ==========================================
+//      =====================
+
+//      ================================================
         Word FetchWord(u32& Cycles, const Mem& memory) {
-    
-    
+
+
             // 6502 is little endian
             Word Data = memory[PC];
             PC++;
-            
+
             Data |= (memory[PC] << 8);
             PC++;
             Cycles -= 2;
-    
+
             return Data;
-    
+
         } // Function FetchWord()
 //      =========================
 
-//      =======================================================
+//      =============================================================
         Byte ReadByte(u32& Cycles, Word Address, const Mem& memory) {
 
             Byte Data = memory[Address];
@@ -142,17 +132,18 @@
         } // Function ReadByte()
 //      ========================
 
-//      =======================================================
+//      =============================================================
         Byte ReadWord(u32& Cycles, Word Address, const Mem& memory) {
 
-           Byte loByte  = ReadByte(Cycles, Address, memory);
-           Byte hiByte  = ReadByte(Cycles, Address + 1, memory);
+            Byte loByte = ReadByte(Cycles, Address, memory);
+            Byte hiByte = ReadByte(Cycles, Address + 1, memory);
 
-           return loByte | (hiByte << 8);
-           
+            return loByte | (hiByte << 8);
+
         } // Function ReadWord()
 //      ========================
 
+//      Write 1 byte to memory
 //      ====================================================================
         void WriteByte(Byte Value, u32& Cycles, Word Address, Mem& memory) {
 
@@ -161,6 +152,50 @@
 
         } // Function WriteByte()
 //      =========================
+
+//      Write 2 bytes to memory
+//      ==========================================================================
+        void WriteWord(Word DataToWrite, u32& Cycles, Word Address, Mem& memory) {
+
+            memory[Address] = DataToWrite & 0xFF;
+            memory[Address + 1] = (DataToWrite >> 8);
+            Cycles -= 2;
+
+        } // Function WriteWord()
+//      =========================
+
+//      Return the stack pointer as a full 16-bit address in the 1st page
+//      ==========================
+        Word SPToAddress() const {
+
+            return 0x100 | SP;
+
+        } // Function SPToWord()
+//      ========================
+
+//      Push the PC-1 onto the stack
+//      ==============================================
+        void PushPCToStack(u32& Cycles, Mem& memory) {
+
+            WriteWord(PC - 1, Cycles, SPToAddress() - 1, memory);
+
+            SP -= 2;
+
+        } // Function PushPCToStack()
+//      =============================
+
+//      =================================================
+        Word PopWordFromStack(u32& Cycles, Mem& memory) {
+
+            Word ValueFromStack = ReadWord(Cycles, SPToAddress() + 1, memory);
+            SP += 2;
+
+            Cycles--;
+
+            return ValueFromStack;
+
+        } // Function PopWordFromStack()
+//      ================================
 
         static constexpr Byte
 
@@ -220,7 +255,10 @@
             INS_STY_ZP = 0x84,
             INS_STY_ZPX  = 0x94,
             INS_STY_ABS = 0x8C,
-            INS_JSR    = 0x20;
+
+//          ==================
+            INS_JSR    = 0x20,
+            INS_RTS    = 0x60;
 //          ===================
 
 //      ===========================================
@@ -335,9 +373,23 @@
                     case INS_JSR: {
     
                         Word SubAddr = FetchWord(Cycles, memory);
-                        memory.WriteWord(PC - 1, SP, Cycles);
+                        
+                        PushPCToStack(Cycles, memory);
+
+
                         PC = SubAddr;
                         Cycles--; 
+                    }
+                    break;
+
+                    case INS_RTS: {
+
+                        Word ReturnAddress = PopWordFromStack(Cycles, memory);
+
+                        PC = ReturnAddress + 1;
+
+                        Cycles -= 2;
+
                     }
                     break;
 
@@ -487,18 +539,18 @@
 
                     case INS_STA_ABSX: {
 
-                        Word Address = AddrAbsoluteX(Cycles, memory);
+                        Word Address = AddrAbsoluteX_5(Cycles, memory);
                         WriteByte(A, Cycles, Address, memory);
-                        Cycles--;
+                        
 
                     }
                     break;
 
                     case INS_STA_ABSY: {
 
-                        Word Address = AddrAbsoluteY(Cycles, memory);
+                        Word Address = AddrAbsoluteY_5(Cycles, memory);
                         WriteByte(A, Cycles, Address, memory);
-                        Cycles--;
+                        
 
                     }
                     break;
@@ -512,10 +564,10 @@
 
                     case INS_STA_INDY: {
 
-                        Word Address = AddrIndirectY(Cycles, memory);
+                        Word Address = AddrIndirectY_6(Cycles, memory);
 
                         WriteByte(A, Cycles, Address, memory);
-                        Cycles--;
+                     
                     }
 
                     break;
@@ -526,6 +578,7 @@
                         std::cout << "INSTRUCTION NOT HANDLED";
     
                     }
+
                     break;
 
                 } // End switch
@@ -535,7 +588,7 @@
         } // Function Execute()
 //      =======================
 
-//      =============================================
+//      ===================================================
         Word AddrZeroPage(u32& Cycles, const Mem& memory) {
 
             Byte ZeroPageAddress = FetchByte(Cycles, memory);
@@ -579,7 +632,7 @@
         } // Function AddrAbsolute()
 //      ============================
 // 
-//      ===================================================
+//      ====================================================
         Word AddrAbsoluteX(u32& Cycles, const Mem& memory) {
 
             Word AbsAddress = FetchWord(Cycles, memory);
@@ -592,6 +645,19 @@
             return AbsAddressX;
 
         } // Function AddrAbsoluteX()
+//      ============================
+
+//      ======================================================
+        Word AddrAbsoluteX_5(u32& Cycles, const Mem& memory) {
+
+            Word AbsAddress = FetchWord(Cycles, memory);
+            Word AbsAddressX = AbsAddress + X;
+           
+            Cycles--;
+
+            return AbsAddressX;
+
+        } // Function AddrAbsoluteX_5()
 //      ============================
 
 //      ====================================================
@@ -607,6 +673,19 @@
             return AbsAddressY;
 
         } // Function AddrAbsoluteY()
+//      =============================
+
+//      ======================================================
+        Word AddrAbsoluteY_5(u32& Cycles, const Mem& memory) {
+
+            Word AbsAddress = FetchWord(Cycles, memory);
+            Word AbsAddressY = AbsAddress + Y;
+
+                Cycles--;
+
+            return AbsAddressY;
+
+        } // Function AddrAbsoluteY_5()
 //      =============================
 
 //      ====================================================
@@ -635,8 +714,24 @@
 
             return EffectiveAddrY;
 
-        } // Function AddrIndirectX()
+        } // Function AddrIndirectY()
 //      =============================
+
+//      ======================================================
+        Word AddrIndirectY_6(u32& Cycles, const Mem& memory) {
+
+            Byte ZPAddress = FetchByte(Cycles, memory);
+
+            Word EffectiveAddr = ReadWord(Cycles, ZPAddress, memory);
+            Word EffectiveAddrY = EffectiveAddr + Y;
+
+            
+            Cycles--;
+
+            return EffectiveAddrY;
+
+        } // Function AddrIndirectY_6()
+//      ===============================
 
     }; // End struct CPU
 //  ====================
