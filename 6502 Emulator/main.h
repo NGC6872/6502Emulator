@@ -16,6 +16,7 @@
 
         struct Mem;
         struct CPU;
+        struct StatusFlags;
 
     } // namespace m6502
 //  ====================
@@ -62,6 +63,20 @@
     }; // End struct memory
 //  =======================
     
+    struct m6502::StatusFlags {
+
+        Byte C : 1;
+        Byte Z : 1;
+        Byte I : 1;
+        Byte D : 1;
+        Byte B : 1;
+        Byte Unused : 1;
+        Byte V : 1;
+        Byte N : 1;
+
+    };
+
+
 //  ===================
     struct m6502::CPU {
 
@@ -70,23 +85,20 @@
 
         Byte A, X, Y; // registers
 
-        // status flags below
+        union {
 
-        Byte C : 1;
-        Byte Z : 1;
-        Byte I : 1;
-        Byte D : 1;
-        Byte B : 1;
-        Byte V : 1;
-        Byte N : 1;
+            Byte PS;
+            StatusFlags Flag;
+
+        };
 
 //      =========================
         void Reset(Mem& memory) {
 
             PC = 0xFFFC;
             SP = 0xFF;
-            D = 0;
-            C = Z = I = D = B = V = N = 0;
+            Flag.D = 0;
+            Flag.C = Flag.Z = Flag.I = Flag.D = Flag.B = Flag.V = Flag.N = 0;
             A = X = Y = 0;
             memory.Initialise();
 
@@ -184,6 +196,34 @@
         } // Function PushPCToStack()
 //      =============================
 
+//      ==============================================================
+        void PushByteOntoStack(u32& Cycles, Byte Value, Mem& memory) {
+
+            Word SP16Bit = SPToAddress();
+            memory[SP16Bit] = Value;
+            
+            Cycles--;
+            SP--;
+            Cycles--;
+
+
+        } // Function PushByteOntoStack()
+//      =================================
+
+//      =================================================
+        Byte PopByteFromStack(u32& Cycles, Mem& memory) {
+
+            SP++;
+            Word SP16Bit = SPToAddress();
+            Byte Value = memory[SP16Bit];
+
+            Cycles -= 3;
+
+            return Value;
+
+        } // Function PopByteFromStack()
+//      =================================
+
 //      =================================================
         Word PopWordFromStack(u32& Cycles, Mem& memory) {
 
@@ -202,12 +242,12 @@
 //      =============
 //      OPCODES BELOW
 //      =============
-    
+
 //          ===========
 //          LDA Opcodes
 //          ===================
-            INS_LDA_IM  = 0xA9,
-            INS_LDA_ZP  = 0xA5,
+            INS_LDA_IM = 0xA9,
+            INS_LDA_ZP = 0xA5,
             INS_LDA_ZPX = 0xB5,
             INS_LDA_ABS = 0xAD,
             INS_LDA_ABSX = 0xBD,
@@ -253,9 +293,24 @@
 //          STY Opcodes
 //          =================
             INS_STY_ZP = 0x84,
-            INS_STY_ZPX  = 0x94,
+            INS_STY_ZPX = 0x94,
             INS_STY_ABS = 0x8C,
+//          ===================
 
+//          =========== 
+//          JMP Opcodes
+//          ===================
+            INS_JMP_ABS = 0x4C,
+            INS_JMP_IND = 0x6C,
+//          ===================
+
+            INS_TSX = 0xBA,
+            INS_TXS = 0x9A,
+
+            INS_PHA = 0x48,
+            INS_PLA = 0x68,
+            INS_PHP = 0x08,
+            INS_PLP = 0x28,
 //          ==================
             INS_JSR    = 0x20,
             INS_RTS    = 0x60;
@@ -264,8 +319,8 @@
 //      ===========================================
         void LoadRegisterSetStatus(Byte Register) {
     
-            Z = (Register == 0);
-            N = (Register & 0b10000000) > 0;
+            Flag.Z = (Register == 0);
+            Flag.N = (Register & 0b10000000) > 0;
     
         } // Function LDASetStatus()
 //      ============================
@@ -390,6 +445,69 @@
 
                         Cycles -= 2;
 
+                    }
+                    break;
+
+                    case INS_JMP_ABS: {
+
+                        Word Address = AddrAbsolute(Cycles, memory);
+                        PC = Address;
+
+                    }
+                    break;
+
+                    case INS_JMP_IND: {
+
+                        Word Address = AddrAbsolute(Cycles, memory);
+                        Address = ReadWord(Cycles, Address, memory);
+
+                        PC = Address;
+
+                    }
+                    break;
+
+                    case INS_TSX: {
+
+                        X = SP;
+                        Cycles--;
+                        LoadRegisterSetStatus(X);
+
+                    }
+                    break;
+
+                    case INS_TXS: {
+
+                        SP = X;
+                        
+                    }
+                    break;
+
+                    case INS_PHA : {
+
+                        PushByteOntoStack(Cycles, A, memory);
+                        Cycles--;
+
+                    }
+                    break;
+
+                    case INS_PLA: {
+
+                        A = PopByteFromStack(Cycles, memory);
+                        LoadRegisterSetStatus(A);
+                    }
+                    break;
+
+                    case INS_PHP: {
+
+                        PushByteOntoStack(Cycles, PS, memory);
+
+                    }
+                    break;
+
+                    case INS_PLP: {
+
+                        PS = PopByteFromStack(Cycles, memory);
+                       
                     }
                     break;
 
@@ -725,7 +843,6 @@
             Word EffectiveAddr = ReadWord(Cycles, ZPAddress, memory);
             Word EffectiveAddrY = EffectiveAddr + Y;
 
-            
             Cycles--;
 
             return EffectiveAddrY;
