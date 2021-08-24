@@ -330,7 +330,7 @@
             INS_ORA_ZPX = 0x15,
             INS_ORA_ABS = 0x0D,
             INS_ORA_ABSX = 0x1D,
-            INS_ORA_ABSY = 0x39,
+            INS_ORA_ABSY = 0x19,
             INS_ORA_INDX = 0x01,
             INS_ORA_INDY = 0x11,
 
@@ -364,6 +364,36 @@
 
             };
 
+            // And the A register
+
+            auto And = [&Cycles, &memory, this](Word Address) {
+
+                A &= ReadByte(Cycles, Address, memory);
+
+                LoadRegisterSetStatus(A);
+
+            };
+
+            // Or the A register
+
+            auto Ora = [&Cycles, &memory, this](Word Address) {
+
+                A |= ReadByte(Cycles, Address, memory);
+
+                LoadRegisterSetStatus(A);
+
+            };
+
+            // Eor Or the A register
+
+            auto Eor = [&Cycles, &memory, this](Word Address) {
+
+                A ^= ReadByte(Cycles, Address, memory);
+
+                LoadRegisterSetStatus(A);
+
+            };
+
             const u32 CyclesRequested = Cycles;
 
             while (Cycles > 0) {
@@ -372,6 +402,199 @@
     
                 switch (Ins) {
     
+                    case INS_AND_IM: {
+    
+                        A &= FetchByte(Cycles, memory);
+                        LoadRegisterSetStatus(A);
+
+                    }
+                    break;
+
+
+                    case INS_ORA_IM: {
+
+                        A |= FetchByte(Cycles, memory);
+                        LoadRegisterSetStatus(A);
+
+                    }
+                    break;
+
+                    case INS_EOR_IM: {
+
+                        A ^= FetchByte(Cycles, memory);
+                        LoadRegisterSetStatus(A);
+
+                    }
+                    break;
+
+                    case INS_AND_ZP: {
+
+                        Word Address = AddrZeroPage(Cycles, memory);
+                        And(Address);
+
+                    }
+                    break;
+
+                    case INS_ORA_ZP: {
+
+                        Word Address = AddrZeroPage(Cycles, memory);
+                        Ora(Address);
+
+                    }
+                    break;
+
+                    case INS_EOR_ZP: {
+
+                        Word Address = AddrZeroPage(Cycles, memory);
+                        Eor(Address);
+
+                    }
+                    break;
+
+                    case INS_AND_ZPX: {
+
+                        Word Address = AddrZeroPageX(Cycles, memory);
+                        And(Address);
+
+                    }
+                    break;
+
+                    case INS_ORA_ZPX: {
+
+                        Word Address = AddrZeroPageX(Cycles, memory);
+                        Ora(Address);
+
+                    }
+                    break;
+
+                    case INS_EOR_ZPX: {
+
+                        Word Address = AddrZeroPageX(Cycles, memory);
+                        Eor(Address);
+
+                    }
+                    break;
+
+                    case INS_AND_ABS: {
+
+                        Word Address = AddrAbsolute(Cycles, memory);
+                        And(Address);
+
+                    }
+                    break;
+
+                    case INS_ORA_ABS: {
+
+                        Word Address = AddrAbsolute(Cycles, memory);
+                        Ora(Address);
+
+                    }
+                    break;
+
+                    case INS_EOR_ABS: {
+
+                        Word Address = AddrAbsolute(Cycles, memory);
+                        Eor(Address);
+
+                    }
+                    break;
+
+                    case INS_AND_ABSX: {
+
+                        Word Address = AddrAbsoluteX(Cycles, memory);
+                        And(Address);
+
+                    }
+                    break;
+
+                    case INS_ORA_ABSX: {
+
+                        Word Address = AddrAbsoluteX(Cycles, memory);
+                        Ora(Address);
+
+                    }
+                    break;
+
+                    case INS_EOR_ABSX: {
+
+                        Word Address = AddrAbsoluteX(Cycles, memory);
+                        Eor(Address);
+
+                    }
+                    break;
+
+                    case INS_AND_ABSY: {
+
+                        Word Address = AddrAbsoluteY(Cycles, memory);
+                        And(Address);
+
+                    }
+                    break;
+
+                    case INS_ORA_ABSY: {
+
+                        Word Address = AddrAbsoluteY(Cycles, memory);
+                        Ora(Address);
+
+                    }
+                    break;
+
+                    case INS_EOR_ABSY: {
+
+                        Word Address = AddrAbsoluteY(Cycles, memory);
+                        Eor(Address);
+
+                    }
+                    break;
+
+                    case INS_AND_INDX: {
+
+                        Word Address = AddrIndirectX(Cycles, memory);
+                        And(Address);
+
+                    }
+                    break;
+
+                    case INS_ORA_INDX: {
+
+                        Word Address = AddrIndirectX(Cycles, memory);
+                        Ora(Address);
+
+                    }
+                    break;
+
+                    case INS_EOR_INDX: {
+
+                        Word Address = AddrIndirectX(Cycles, memory);
+                        Eor(Address);
+
+                    }
+                    break;
+
+                    case INS_AND_INDY: {
+
+                        Word Address = AddrIndirectY(Cycles, memory);
+                        And(Address);
+
+                    }
+                    break;
+
+                    case INS_ORA_INDY: {
+
+                        Word Address = AddrIndirectY(Cycles, memory);
+                        Ora(Address);
+
+                    }
+                    break;
+
+                    case INS_EOR_INDY: {
+
+                        Word Address = AddrIndirectY(Cycles, memory);
+                        Eor(Address);
+
+                    }
+                    break;
+
                     case INS_LDA_IM: {
     
                         Byte Value = FetchByte(Cycles, memory);
