@@ -341,7 +341,10 @@
             INS_EOR_ABSX = 0x5D,
             INS_EOR_ABSY = 0x59,
             INS_EOR_INDX = 0x41,
-            INS_EOR_INDY = 0x51;
+            INS_EOR_INDY = 0x51,
+
+            INS_BIT_ZP = 0x24,
+            INS_BIT_ABS = 0x2C;
 
 //      ===========================================
         void LoadRegisterSetStatus(Byte Register) {
@@ -591,6 +594,30 @@
 
                         Word Address = AddrIndirectY(Cycles, memory);
                         Eor(Address);
+
+                    }
+                    break;
+
+                    case INS_BIT_ZP: {
+
+                        Word Address = AddrZeroPage(Cycles, memory);
+                        Byte Value = ReadByte(Cycles, Address, memory);
+
+                        Flag.Z = !(A & Value);
+
+                        PS |= (Value & 0b11000000);
+
+                    }
+                    break;
+
+                    case INS_BIT_ABS: {
+
+                        Word Address = AddrAbsolute(Cycles, memory);
+                        Byte Value = ReadByte(Cycles, Address, memory);
+
+                        Flag.Z = !(A & Value);
+
+                        PS |= (Value & 0b11000000);
 
                     }
                     break;
