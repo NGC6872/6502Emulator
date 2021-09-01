@@ -106,7 +106,7 @@
 //      =====================
 
 //      ================================================
-        Byte FetchByte(u32& Cycles, const Mem& memory) {
+        Byte FetchByte(s32& Cycles, const Mem& memory) {
 
             Byte Data = memory[PC];
             PC++;
@@ -118,7 +118,7 @@
 //      =====================
 
 //      ================================================
-        Word FetchWord(u32& Cycles, const Mem& memory) {
+        Word FetchWord(s32& Cycles, const Mem& memory) {
 
 
             // 6502 is little endian
@@ -135,7 +135,7 @@
 //      =========================
 
 //      =============================================================
-        Byte ReadByte(u32& Cycles, Word Address, const Mem& memory) {
+        Byte ReadByte(s32& Cycles, Word Address, const Mem& memory) {
 
             Byte Data = memory[Address];
             Cycles--;
@@ -145,7 +145,7 @@
 //      ========================
 
 //      =============================================================
-        Byte ReadWord(u32& Cycles, Word Address, const Mem& memory) {
+        Byte ReadWord(s32& Cycles, Word Address, const Mem& memory) {
 
             Byte loByte = ReadByte(Cycles, Address, memory);
             Byte hiByte = ReadByte(Cycles, Address + 1, memory);
@@ -157,7 +157,7 @@
 
 //      Write 1 byte to memory
 //      ====================================================================
-        void WriteByte(Byte Value, u32& Cycles, Word Address, Mem& memory) {
+        void WriteByte(Byte Value, s32& Cycles, Word Address, Mem& memory) {
 
             memory[Address] = Value;
             Cycles--;
@@ -167,7 +167,7 @@
 
 //      Write 2 bytes to memory
 //      ==========================================================================
-        void WriteWord(Word DataToWrite, u32& Cycles, Word Address, Mem& memory) {
+        void WriteWord(Word DataToWrite, s32& Cycles, Word Address, Mem& memory) {
 
             memory[Address] = DataToWrite & 0xFF;
             memory[Address + 1] = (DataToWrite >> 8);
@@ -187,7 +187,7 @@
 
 //      Push the PC-1 onto the stack
 //      ==============================================
-        void PushPCToStack(u32& Cycles, Mem& memory) {
+        void PushPCToStack(s32& Cycles, Mem& memory) {
 
             WriteWord(PC - 1, Cycles, SPToAddress() - 1, memory);
 
@@ -197,7 +197,7 @@
 //      =============================
 
 //      ==============================================================
-        void PushByteOntoStack(u32& Cycles, Byte Value, Mem& memory) {
+        void PushByteOntoStack(s32& Cycles, Byte Value, Mem& memory) {
 
             Word SP16Bit = SPToAddress();
             memory[SP16Bit] = Value;
@@ -211,7 +211,7 @@
 //      =================================
 
 //      =================================================
-        Byte PopByteFromStack(u32& Cycles, Mem& memory) {
+        Byte PopByteFromStack(s32& Cycles, Mem& memory) {
 
             SP++;
             Word SP16Bit = SPToAddress();
@@ -225,7 +225,7 @@
 //      =================================
 
 //      =================================================
-        Word PopWordFromStack(u32& Cycles, Mem& memory) {
+        Word PopWordFromStack(s32& Cycles, Mem& memory) {
 
             Word ValueFromStack = ReadWord(Cycles, SPToAddress() + 1, memory);
             SP += 2;
@@ -236,6 +236,11 @@
 
         } // Function PopWordFromStack()
 //      ================================
+
+        static constexpr Byte
+
+            NegativeFlagBit = 0b10000000,
+            OverflowFlagBit = 0b01000000;
 
         static constexpr Byte
 
@@ -355,8 +360,8 @@
         } // Function LDASetStatus()
 //      ============================
 
-//      =======================================
-        void Execute(u32 Cycles, Mem& memory) {
+//      ======================================
+        s32 Execute(s32 Cycles, Mem& memory) {
 
             // load a register with the value from a memory address
             auto LoadRegister = [&Cycles, &memory, this](Word Address, Byte& Register) {
@@ -397,7 +402,7 @@
 
             };
 
-            const u32 CyclesRequested = Cycles;
+            const s32 CyclesRequested = Cycles;
 
             while (Cycles > 0) {
     
@@ -605,7 +610,9 @@
 
                         Flag.Z = !(A & Value);
 
-                        PS |= (Value & 0b11000000);
+                        Flag.N = (Value & NegativeFlagBit) != 0;
+
+                        Flag.V = (Value & OverflowFlagBit) != 0;
 
                     }
                     break;
@@ -617,8 +624,9 @@
 
                         Flag.Z = !(A & Value);
 
-                        PS |= (Value & 0b11000000);
+                        Flag.N = (Value & NegativeFlagBit) != 0;
 
+                        Flag.V = (Value & OverflowFlagBit) != 0;
                     }
                     break;
 
@@ -980,11 +988,15 @@
 
             } // End while loop
     
+            const s32 NumCyclesUsed = CyclesRequested - Cycles;
+            return NumCyclesUsed;
+
+
         } // Function Execute()
 //      =======================
 
 //      ===================================================
-        Word AddrZeroPage(u32& Cycles, const Mem& memory) {
+        Word AddrZeroPage(s32& Cycles, const Mem& memory) {
 
             Byte ZeroPageAddress = FetchByte(Cycles, memory);
 
@@ -994,7 +1006,7 @@
 //      ============================
 
 //      ====================================================
-        Word AddrZeroPageX(u32& Cycles, const Mem& memory) {
+        Word AddrZeroPageX(s32& Cycles, const Mem& memory) {
 
             Byte ZeroPageAddress = FetchByte(Cycles, memory);
             ZeroPageAddress += X;
@@ -1006,7 +1018,7 @@
 //      ============================
 
 //      ====================================================
-        Word AddrZeroPageY(u32& Cycles, const Mem& memory) {
+        Word AddrZeroPageY(s32& Cycles, const Mem& memory) {
 
             Byte ZeroPageAddress = FetchByte(Cycles, memory);
             ZeroPageAddress += Y;
@@ -1015,10 +1027,10 @@
             return ZeroPageAddress;
 
         } // Function AddrZeroPageY()
-//      ============================
+//      =============================
 
 //      ===================================================
-        Word AddrAbsolute(u32& Cycles, const Mem& memory) {
+        Word AddrAbsolute(s32& Cycles, const Mem& memory) {
 
             Word AbsAddress = FetchWord(Cycles, memory);
 
@@ -1028,7 +1040,7 @@
 //      ============================
 // 
 //      ====================================================
-        Word AddrAbsoluteX(u32& Cycles, const Mem& memory) {
+        Word AddrAbsoluteX(s32& Cycles, const Mem& memory) {
 
             Word AbsAddress = FetchWord(Cycles, memory);
             Word AbsAddressX = AbsAddress + X;
@@ -1043,7 +1055,7 @@
 //      ============================
 
 //      ======================================================
-        Word AddrAbsoluteX_5(u32& Cycles, const Mem& memory) {
+        Word AddrAbsoluteX_5(s32& Cycles, const Mem& memory) {
 
             Word AbsAddress = FetchWord(Cycles, memory);
             Word AbsAddressX = AbsAddress + X;
@@ -1056,7 +1068,7 @@
 //      ============================
 
 //      ====================================================
-        Word AddrAbsoluteY(u32& Cycles, const Mem& memory) {
+        Word AddrAbsoluteY(s32& Cycles, const Mem& memory) {
 
             Word AbsAddress = FetchWord(Cycles, memory);
             Word AbsAddressY = AbsAddress + Y;
@@ -1071,7 +1083,7 @@
 //      =============================
 
 //      ======================================================
-        Word AddrAbsoluteY_5(u32& Cycles, const Mem& memory) {
+        Word AddrAbsoluteY_5(s32& Cycles, const Mem& memory) {
 
             Word AbsAddress = FetchWord(Cycles, memory);
             Word AbsAddressY = AbsAddress + Y;
@@ -1084,7 +1096,7 @@
 //      =============================
 
 //      ====================================================
-        Word AddrIndirectX(u32& Cycles, const Mem& memory) {
+        Word AddrIndirectX(s32& Cycles, const Mem& memory) {
 
             Byte ZPAddress = FetchByte(Cycles, memory);
             ZPAddress += X;
@@ -1097,7 +1109,7 @@
 //      =============================
 
 //      ====================================================
-        Word AddrIndirectY(u32& Cycles, const Mem& memory) {
+        Word AddrIndirectY(s32& Cycles, const Mem& memory) {
 
             Byte ZPAddress = FetchByte(Cycles, memory);
            
@@ -1113,7 +1125,7 @@
 //      =============================
 
 //      ======================================================
-        Word AddrIndirectY_6(u32& Cycles, const Mem& memory) {
+        Word AddrIndirectY_6(s32& Cycles, const Mem& memory) {
 
             Byte ZPAddress = FetchByte(Cycles, memory);
 
@@ -1126,6 +1138,31 @@
 
         } // Function AddrIndirectY_6()
 //      ===============================
+
+//      ============================================================
+        Word LoadProgram(Byte* Program, u32 NumBytes, Mem& memory) {
+
+            Word LoadAddress = 0;
+
+            if (Program && NumBytes > 2) {
+
+                u32 At = 0;
+                const Word Lo = Program[At++];
+                const Word Hi = Program[At++] << 8;
+                LoadAddress = Lo | Hi;
+
+                for (Word ii = LoadAddress; ii < LoadAddress + NumBytes - 2; ii++) {
+
+                    memory[ii] = Program[At++];
+
+                }
+
+            }
+
+            return LoadAddress;
+
+        } // Function LoadProgram()
+//      ===========================
 
     }; // End struct CPU
 //  ====================
