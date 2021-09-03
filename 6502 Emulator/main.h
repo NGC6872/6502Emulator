@@ -330,6 +330,7 @@
             INS_AND_INDX = 0x21,
             INS_AND_INDY = 0x31,
 
+            //OR
             INS_ORA_IM = 0x09,
             INS_ORA_ZP = 0x05,
             INS_ORA_ZPX = 0x15,
@@ -339,6 +340,7 @@
             INS_ORA_INDX = 0x01,
             INS_ORA_INDY = 0x11,
 
+            // EOR
             INS_EOR_IM = 0x49,
             INS_EOR_ZP = 0x45,
             INS_EOR_ZPX = 0x55,
@@ -348,8 +350,16 @@
             INS_EOR_INDX = 0x41,
             INS_EOR_INDY = 0x51,
 
+            // BIT
             INS_BIT_ZP = 0x24,
-            INS_BIT_ABS = 0x2C;
+            INS_BIT_ABS = 0x2C,
+
+            // Transfer register
+            INS_TAX = 0xAA,
+            INS_TAY = 0xA8,
+            INS_TXA = 0x8A,
+            INS_TYA = 0x98;
+
 
 //      ===========================================
         void LoadRegisterSetStatus(Byte Register) {
@@ -392,7 +402,7 @@
 
             };
 
-            // Eor Or the A register
+            // Eor the A register
 
             auto Eor = [&Cycles, &memory, this](Word Address) {
 
@@ -417,7 +427,6 @@
 
                     }
                     break;
-
 
                     case INS_ORA_IM: {
 
@@ -796,6 +805,38 @@
                     }
                     break;
 
+                    case INS_TAX: {
+
+                       X = A;
+                       Cycles--;
+                       LoadRegisterSetStatus(X);
+                    }
+                    break;
+
+                    case INS_TAY: {
+
+                        Y = A;
+                        Cycles--;
+                        LoadRegisterSetStatus(Y);
+                    }
+                    break;
+
+                    case INS_TXA: {
+
+                        A = X;
+                        Cycles--;
+                        LoadRegisterSetStatus(A);
+                    }
+                    break;
+
+                    case INS_TYA: {
+
+                        A = Y;
+                        Cycles--;
+                        LoadRegisterSetStatus(A);
+                    }
+                    break;
+
                     case INS_LDA_ABS: {
 
                         Word Address = AddrAbsolute(Cycles, memory);
@@ -990,7 +1031,6 @@
     
             const s32 NumCyclesUsed = CyclesRequested - Cycles;
             return NumCyclesUsed;
-
 
         } // Function Execute()
 //      =======================

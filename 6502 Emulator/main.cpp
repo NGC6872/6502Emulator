@@ -5,26 +5,25 @@ using namespace m6502;
 //  ============
 	int main() {
 	
-	    /*Mem mem;
-	    CPU cpu;
-	    cpu.Reset(mem);
-	    mem[0xFFFC] = CPU::INS_LDX_ZP;
-	    mem[0xFFFD] = 0x42;
-		mem[0x0042] = 0x84;
-        cpu.Execute(3, mem);*/
-
 		Byte Program[] = { 0x00,0x10,0xA9,0xFF,0x85,0x90,0x8D,0x00,0x80,0x49,0xCC,0x4C,0x02,0x10 };
 
 		Mem mem;
 		CPU cpu;
+
+		std::cout << "Resetting CPU..." << std::endl;
+
 		cpu.Reset(mem);
 
-		std::cout << "reset cpu" << std::endl;
+		std::cout << "CPU Reset" << std::endl << std::endl;
+
+		std::cout << "Loading program..." << std::endl;
+
 		Word StartAddress = cpu.LoadProgram(Program, 14, mem);
 
-		std::cout << "Loaded program" << std::endl;
+		std::cout << "Loaded program" << std::endl << std::endl;
 
 		std::cout << "Start address: ";
+
 		printf("%d\n", StartAddress);
 		
 		cpu.PC = StartAddress;
