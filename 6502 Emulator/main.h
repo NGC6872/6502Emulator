@@ -384,8 +384,6 @@
             INS_INC_ABS = 0xEE,
             INS_INC_ABSX = 0xFE,
             
-            
-
             // Conditional branching
 
             INS_BEQ = 0xF0,
@@ -395,7 +393,22 @@
             INS_BMI = 0x30,
             INS_BPL = 0x10,
             INS_BVC = 0x50,
-            INS_BVS = 0x70;
+            INS_BVS = 0x70,
+
+            // status flag changes
+
+            INS_CLC = 0x18,
+            INS_SEC = 0x38,
+            
+            INS_CLD = 0xD8,
+            INS_SED = 0xF8,
+            INS_CLI = 0x58,
+            INS_SEI = 0x78,
+            INS_CLV = 0xB8,
+            
+            // Misc.
+
+            INS_NOP = 0xEA;
 
 //      ===========================================
         void SetZeroAndNegativeFlags(Byte Register) {
@@ -1109,6 +1122,77 @@
                     case INS_BVS: {
 
                         BranchIf(Flag.V, true);
+
+                    }
+
+                    break;
+
+                    case INS_CLC: {
+
+                        Flag.C = false;
+                        Cycles--;
+
+                    }
+
+                    break;
+
+                    case INS_SEC: {
+
+                        Flag.C = true;
+                        Cycles--;
+
+                    }
+
+                    break;
+
+                    case INS_CLD: {
+
+                        Flag.D = false;
+                        Cycles--;
+
+                    }
+
+                    break;
+
+                    case INS_SED: {
+
+                        Flag.D = true;
+                        Cycles--;
+
+                    }
+
+                    break;
+
+                    case INS_CLI: {
+
+                        Flag.I = false;
+                        Cycles--;
+
+                    }
+
+                    break;
+
+                    case INS_SEI: {
+
+                        Flag.I = true;
+                        Cycles--;
+
+                    }
+
+                    break;
+
+                    case INS_CLV: {
+
+                        Flag.V = false;
+                        Cycles--;
+
+                    }
+
+                    break;
+
+                    case INS_NOP: {
+
+                        Cycles--;
 
                     }
 
