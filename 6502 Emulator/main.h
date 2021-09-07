@@ -358,11 +358,25 @@
             INS_TAX = 0xAA,
             INS_TAY = 0xA8,
             INS_TXA = 0x8A,
-            INS_TYA = 0x98;
+            INS_TYA = 0x98,
 
+            // Increment & Decrement
+
+            INS_INX = 0xE8,
+            INS_INY = 0xC8,
+            INS_DEY = 0x88,
+            INS_DEX = 0xCA,
+            INS_DEC_ZP = 0xC6,
+            INS_DEC_ZPX = 0xD6,
+            INS_DEC_ABS = 0xCE,
+            INS_DEC_ABSX = 0xDE,
+            INS_INC_ZP = 0xE6,
+            INS_INC_ZPX = 0xF6,
+            INS_INC_ABS = 0xEE,
+            INS_INC_ABSX = 0xFE;
 
 //      ===========================================
-        void LoadRegisterSetStatus(Byte Register) {
+        void SetZeroAndNegativeFlags(Byte Register) {
     
             Flag.Z = (Register == 0);
             Flag.N = (Register & 0b10000000) > 0;
@@ -378,7 +392,7 @@
 
                 Register = ReadByte(Cycles, Address, memory);
 
-                LoadRegisterSetStatus(Register);
+                SetZeroAndNegativeFlags(Register);
 
             };
 
@@ -388,7 +402,7 @@
 
                 A &= ReadByte(Cycles, Address, memory);
 
-                LoadRegisterSetStatus(A);
+                SetZeroAndNegativeFlags(A);
 
             };
 
@@ -398,7 +412,7 @@
 
                 A |= ReadByte(Cycles, Address, memory);
 
-                LoadRegisterSetStatus(A);
+                SetZeroAndNegativeFlags(A);
 
             };
 
@@ -408,7 +422,7 @@
 
                 A ^= ReadByte(Cycles, Address, memory);
 
-                LoadRegisterSetStatus(A);
+                SetZeroAndNegativeFlags(A);
 
             };
 
@@ -423,7 +437,7 @@
                     case INS_AND_IM: {
     
                         A &= FetchByte(Cycles, memory);
-                        LoadRegisterSetStatus(A);
+                        SetZeroAndNegativeFlags(A);
 
                     }
                     break;
@@ -431,7 +445,7 @@
                     case INS_ORA_IM: {
 
                         A |= FetchByte(Cycles, memory);
-                        LoadRegisterSetStatus(A);
+                        SetZeroAndNegativeFlags(A);
 
                     }
                     break;
@@ -439,7 +453,7 @@
                     case INS_EOR_IM: {
 
                         A ^= FetchByte(Cycles, memory);
-                        LoadRegisterSetStatus(A);
+                        SetZeroAndNegativeFlags(A);
 
                     }
                     break;
@@ -643,7 +657,7 @@
     
                         Byte Value = FetchByte(Cycles, memory);
                         A = Value;
-                        LoadRegisterSetStatus(A);
+                        SetZeroAndNegativeFlags(A);
     
                     }
                     break;
@@ -652,7 +666,7 @@
 
                         Byte Value = FetchByte(Cycles, memory);
                         X = Value;
-                        LoadRegisterSetStatus(X);
+                        SetZeroAndNegativeFlags(X);
 
                     }
                     break;
@@ -661,7 +675,7 @@
 
                         Byte Value = FetchByte(Cycles, memory);
                         Y = Value;
-                        LoadRegisterSetStatus(Y);
+                        SetZeroAndNegativeFlags(Y);
 
                     }
                     break;
@@ -764,7 +778,7 @@
 
                         X = SP;
                         Cycles--;
-                        LoadRegisterSetStatus(X);
+                        SetZeroAndNegativeFlags(X);
 
                     }
                     break;
@@ -787,7 +801,7 @@
                     case INS_PLA: {
 
                         A = PopByteFromStack(Cycles, memory);
-                        LoadRegisterSetStatus(A);
+                        SetZeroAndNegativeFlags(A);
                     }
                     break;
 
@@ -809,7 +823,7 @@
 
                        X = A;
                        Cycles--;
-                       LoadRegisterSetStatus(X);
+                       SetZeroAndNegativeFlags(X);
                     }
                     break;
 
@@ -817,7 +831,7 @@
 
                         Y = A;
                         Cycles--;
-                        LoadRegisterSetStatus(Y);
+                        SetZeroAndNegativeFlags(Y);
                     }
                     break;
 
@@ -825,7 +839,7 @@
 
                         A = X;
                         Cycles--;
-                        LoadRegisterSetStatus(A);
+                        SetZeroAndNegativeFlags(A);
                     }
                     break;
 
@@ -833,9 +847,165 @@
 
                         A = Y;
                         Cycles--;
-                        LoadRegisterSetStatus(A);
+                        SetZeroAndNegativeFlags(A);
                     }
                     break;
+
+                    case INS_INX: {
+
+                        X++;
+                        Cycles--;
+                        SetZeroAndNegativeFlags(X); 
+                    }
+                    break;
+
+                    case INS_INY: {
+
+                        Y++;
+                        Cycles--;
+                        SetZeroAndNegativeFlags(Y);
+                    }
+
+                    break;
+
+                    case INS_DEY: {
+
+                        Y--;
+                        Cycles--;
+                        SetZeroAndNegativeFlags(Y);
+                    }
+
+                    break;
+
+                    case INS_DEX: {
+
+                        X--;
+                        Cycles--;
+                        SetZeroAndNegativeFlags(X);
+                    }
+
+                    break;
+
+                    case INS_DEC_ZP: {
+
+                        Word Address = AddrZeroPage(Cycles, memory);
+                        Byte Value = ReadByte(Cycles, Address, memory);
+                        Value--;
+                        Cycles--;
+
+                        WriteByte(Value, Cycles, Address, memory);
+
+                        SetZeroAndNegativeFlags(Value);
+                    }
+
+                    break;
+
+                    case INS_DEC_ZPX: {
+
+                        Word Address = AddrZeroPageX(Cycles, memory);
+
+                        Byte Value = ReadByte(Cycles, Address, memory);
+                        Value--;
+                        Cycles--;
+
+                        WriteByte(Value, Cycles, Address, memory);
+
+                        SetZeroAndNegativeFlags(Value);
+                    }
+
+                    break;
+
+                    case INS_DEC_ABS: {
+
+                        Word Address = AddrAbsolute(Cycles, memory);
+                        Byte Value = ReadByte(Cycles, Address, memory);
+
+                        Value--;
+                        Cycles--;
+
+                        WriteByte(Value, Cycles, Address, memory);
+
+                        SetZeroAndNegativeFlags(Value);
+                    }
+
+                    break;
+
+                    case INS_DEC_ABSX: {
+
+                        Word Address = AddrAbsoluteX_5(Cycles, memory);
+
+                        Byte Value = ReadByte(Cycles, Address, memory);
+
+                        Value--;
+                        Cycles--;
+
+                        WriteByte(Value, Cycles, Address, memory);
+
+                        SetZeroAndNegativeFlags(Value);
+                    }
+
+                    break;
+
+                    case INS_INC_ZP: {
+
+                        Word Address = AddrZeroPage(Cycles, memory);
+                        Byte Value = ReadByte(Cycles, Address, memory);
+                        Value++;
+                        Cycles--;
+
+                        WriteByte(Value, Cycles, Address, memory);
+
+                        SetZeroAndNegativeFlags(Value);
+                    }
+
+                    break;
+
+                    case INS_INC_ZPX: {
+
+                        Word Address = AddrZeroPageX(Cycles, memory);
+
+                        Byte Value = ReadByte(Cycles, Address, memory);
+                        Value++;
+                        Cycles--;
+
+                        WriteByte(Value, Cycles, Address, memory);
+
+                        SetZeroAndNegativeFlags(Value);
+                    }
+
+                    break;
+
+                    case INS_INC_ABS: {
+
+                        Word Address = AddrAbsolute(Cycles, memory);
+                        Byte Value = ReadByte(Cycles, Address, memory);
+
+                        Value++;
+                        Cycles--;
+
+                        WriteByte(Value, Cycles, Address, memory);
+
+                        SetZeroAndNegativeFlags(Value);
+                    }
+
+                    break;
+
+                    case INS_INC_ABSX: {
+
+                        Word Address = AddrAbsoluteX_5(Cycles, memory);
+
+                        Byte Value = ReadByte(Cycles, Address, memory);
+
+                        Value++;
+                        Cycles--;
+
+                        WriteByte(Value, Cycles, Address, memory);
+
+                        SetZeroAndNegativeFlags(Value);
+                    }
+
+                    break;
+
 
                     case INS_LDA_ABS: {
 
