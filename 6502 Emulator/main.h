@@ -119,6 +119,14 @@
 //      =====================
 
 //      ================================================
+        SByte FetchSByte(s32& Cycles, const Mem& memory) {
+
+           return FetchByte(Cycles, memory);
+
+        } // Function Fetch()
+//      =====================
+
+//      ================================================
         Word FetchWord(s32& Cycles, const Mem& memory) {
 
 
@@ -376,13 +384,18 @@
             INS_INC_ABS = 0xEE,
             INS_INC_ABSX = 0xFE,
             
+            
 
             // Conditional branching
 
-            INS_BEQ = 0xF0;
-
-
-
+            INS_BEQ = 0xF0,
+            INS_BNE = 0xD0,
+            INS_BCS = 0xB0,
+            INS_BCC = 0x90,
+            INS_BMI = 0x30,
+            INS_BPL = 0x10,
+            INS_BVC = 0x50,
+            INS_BVS = 0x70;
 
 //      ===========================================
         void SetZeroAndNegativeFlags(Byte Register) {
@@ -432,6 +445,28 @@
                 A ^= ReadByte(Cycles, Address, memory);
 
                 SetZeroAndNegativeFlags(A);
+
+            };
+
+            // Conditional branch
+
+            auto BranchIf = [&Cycles, &memory, this](bool Test, bool Expected) {
+
+                SByte Offset = FetchSByte(Cycles, memory);
+
+                if (Test == Expected) {
+
+                    const Word OldPC = PC;
+                    PC += Offset;
+                    Cycles--;
+
+                    if ((PC >> 8) != (OldPC >> 8)) { // page changed
+
+                        Cycles -= 2;
+
+                    }
+
+                }
 
             };
 
@@ -1017,20 +1052,64 @@
 
                     case INS_BEQ: {
 
-                        Byte Offset = FetchByte(Cycles, memory);
+                        BranchIf(Flag.Z, true);
 
-                        if (Flag.Z) {
+                    }
 
-                            const Word OldPC = PC;
-                            PC += static_cast<SByte>(Offset);
-                            Cycles--;
+                    break;
 
-                            if ((PC >> 8) != (OldPC >> 8)) { // page changed
+                    case INS_BNE: {
 
-                                Cycles -= 2;
+                        BranchIf(Flag.Z, false);
 
-                            }
-                        }
+                    }
+                   
+                    break;
+
+                    case INS_BCS: {
+
+                        BranchIf(Flag.C, true);
+
+                    }
+
+                    break;
+
+                    case INS_BCC: {
+
+                        BranchIf(Flag.C, false);
+
+                    }
+
+                    break;
+
+                    case INS_BMI: {
+
+                        BranchIf(Flag.N, true);
+
+                    }
+
+                    break;
+
+                    case INS_BPL: {
+
+                        BranchIf(Flag.N, false);
+
+                    }
+
+                    break;
+
+                    case INS_BVC: {
+
+                        BranchIf(Flag.V, false);
+
+                    }
+
+                    break;
+
+                    case INS_BVS: {
+
+                        BranchIf(Flag.V, true);
+
                     }
 
                     break;
