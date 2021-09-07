@@ -9,6 +9,7 @@
 //  =================
     namespace m6502 {
 
+        using SByte = char;
         using Byte = unsigned char;
         using Word = unsigned short;
         using u32 = unsigned int;
@@ -373,7 +374,15 @@
             INS_INC_ZP = 0xE6,
             INS_INC_ZPX = 0xF6,
             INS_INC_ABS = 0xEE,
-            INS_INC_ABSX = 0xFE;
+            INS_INC_ABSX = 0xFE,
+            
+
+            // Conditional branching
+
+            INS_BEQ = 0xF0;
+
+
+
 
 //      ===========================================
         void SetZeroAndNegativeFlags(Byte Register) {
@@ -1006,6 +1015,25 @@
 
                     break;
 
+                    case INS_BEQ: {
+
+                        Byte Offset = FetchByte(Cycles, memory);
+
+                        if (Flag.Z) {
+
+                            const Word OldPC = PC;
+                            PC += static_cast<SByte>(Offset);
+                            Cycles--;
+
+                            if ((PC >> 8) != (OldPC >> 8)) { // page changed
+
+                                Cycles -= 2;
+
+                            }
+                        }
+                    }
+
+                    break;
 
                     case INS_LDA_ABS: {
 
@@ -1175,6 +1203,8 @@
                         LoadRegister(Address, A);
 
                     }
+
+                    break;
 
                     case INS_STA_INDY: {
 
