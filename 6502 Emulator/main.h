@@ -418,7 +418,18 @@
             INS_ADC_ABSY = 0x79,
             INS_ADC_INDX = 0x61,
             INS_ADC_INDY = 0x71,
-            
+
+            // Register Comparison
+
+            INS_CMP = 0xC9,
+            INS_CMP_ZP = 0xC5,
+            INS_CMP_ZPX = 0xD5,
+            INS_CMP_ABS = 0xCD,
+            INS_CMP_ABSX = 0xDD,
+            INS_CMP_ABSY = 0xD9,
+            INS_CMP_INDX = 0xC1,
+            INS_CMP_INDY = 0xD1,
+
             // Misc.
 
             INS_NOP = 0xEA;
@@ -513,6 +524,18 @@
 
                 Flag.C = Sum > 0xFF;
                 Flag.V = AreSignBitsTheSame && ((A ^ Operand) & NegativeFlagBit);
+
+            };
+
+            // Sets the processor status for a CMP/CPX/CPY Instruction
+            auto CMP = [&Cycles, &memory, this](Byte Operand) {
+
+                Byte Temp = A - Operand;
+
+                Flag.N = (Temp & NegativeFlagBit) > 0;
+                Flag.Z = A == Operand;
+                Flag.C = A >= Operand;
+
 
             };
 
@@ -1325,6 +1348,87 @@
                     }
 
                     break;
+
+                    case INS_CMP: {
+
+                        Byte Operand = FetchByte(Cycles, memory);
+                        
+                        CMP(Operand);
+
+                    }
+
+                    break;
+
+                    case INS_CMP_ZP: {
+
+                        Word Address = AddrZeroPage(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        CMP(Operand);
+                    }
+
+                    break;
+
+                    case INS_CMP_ZPX: {
+
+                        Word Address = AddrZeroPageX(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        CMP(Operand);
+                    }
+
+                    break;
+
+                    case INS_CMP_ABS: {
+
+                        Word Address = AddrAbsolute(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        CMP(Operand);
+                    }
+
+                    break;
+
+                    case INS_CMP_ABSX: {
+
+                        Word Address = AddrAbsoluteX(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        CMP(Operand);
+                    }
+
+                    break;
+
+                    case INS_CMP_ABSY: {
+
+                        Word Address = AddrAbsoluteY(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        CMP(Operand);
+                    }
+
+                    break;
+
+                    case INS_CMP_INDX: {
+
+                        Word Address = AddrIndirectX(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        CMP(Operand);
+                    }
+
+                    break;
+
+                    case INS_CMP_INDY: {
+
+                        Word Address = AddrIndirectY(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        CMP(Operand);
+                    }
+
+                    break;
+
 
                     case INS_LDA_ABS: {
 
