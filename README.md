@@ -25,16 +25,16 @@ This is a switch-case based implementation of the 6502. There are a few differen
 		
 		// Execute instructions for 1000 clock cycles
 		
-	           for (s32 Clock = 1000; Clock > 0;) {
+	        for (s32 Clock = 1000; Clock > 0;) {
 
-			Clock -= cpu.Execute(1, mem);
+	            Clock -= cpu.Execute(1, mem);
 
-			printf("A: %d X: %d Y: %d\n", cpu.A, cpu.X, cpu.Y);
-			printf("PC: %d SP: %d\n", cpu.PC, cpu.SP);
+		    printf("A: %d X: %d Y: %d\n", cpu.A, cpu.X, cpu.Y);
+		    printf("PC: %d SP: %d\n", cpu.PC, cpu.SP);
 
-			std::cout << std::endl;
+		    std::cout << std::endl;
 			
-		    }	
+		 }	
 ```
 
 # 6502 Architecture
@@ -86,4 +86,8 @@ https://archive.org/details/6502UsersManual/page/n31/mode/2up
 
 http://emubook.emulation64.com/cpu.htm
 
+# TODO:
 
+ Finish implementing all of the instructions
+ Seperate memory and CPU into different classes
+ Create an interface to visualize instructions being executed
