@@ -75,6 +75,15 @@ The 6502 has the following addressing modes:
                                              
                                              Indexed Indirect addressing mode
 					     
+					     
+# TODO:
+
+ Finish implementing all of the instructions
+ 
+ Seperate memory and CPU into different classes
+ 
+ Create an interface to visualize instructions being executed
+ 
 # Resources
 Here are a few resources I've used so far:
 
@@ -85,9 +94,3 @@ https://www.youtube.com/watch?v=qJgsuQoy9bc
 https://archive.org/details/6502UsersManual/page/n31/mode/2up
 
 http://emubook.emulation64.com/cpu.htm
-
-# TODO:
-
- Finish implementing all of the instructions
- Seperate memory and CPU into different classes
- Create an interface to visualize instructions being executed
