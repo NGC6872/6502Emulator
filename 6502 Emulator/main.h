@@ -6,6 +6,8 @@
     #include <iostream>
 //  ====================
 
+#define ASSERT(Condition, Text) {if (!Condition){throw -1; }}
+
 //  =================
     namespace m6502 {
 
@@ -408,7 +410,14 @@
 
             // Arithmetic
 
+            INS_ADC = 0x69,
+            INS_ADC_ZP = 0x65,
+            INS_ADC_ZPX = 0x75,
             INS_ADC_ABS = 0x6D,
+            INS_ADC_ABSX = 0x7D,
+            INS_ADC_ABSY = 0x79,
+            INS_ADC_INDX = 0x61,
+            INS_ADC_INDY = 0x71,
             
             // Misc.
 
@@ -484,6 +493,26 @@
                     }
 
                 }
+
+            };
+
+            auto ADC = [&Cycles, &memory, this](Byte Operand) {
+
+                ASSERT(Flag.D == false, "haven't handled decimal mode! ");
+
+                const bool AreSignBitsTheSame = !((A ^ Operand) & NegativeFlagBit);
+
+                Word Sum = A;
+
+                Sum += Operand;
+                Sum += Flag.C;
+
+                A = (Sum & 0xFF);
+
+                SetZeroAndNegativeFlags(A);
+
+                Flag.C = Sum > 0xFF;
+                Flag.V = AreSignBitsTheSame && ((A ^ Operand) & NegativeFlagBit);
 
             };
 
@@ -1208,25 +1237,90 @@
 
                        Byte Operand = ReadByte(Cycles, Address, memory);
 
-                       const Byte AOld = A;
+                       ADC(Operand);
 
-                       Word Sum = A;
+                    }
 
-                       Sum += Operand;
-                       Sum += Flag.C;
+                    break;
 
-                       A = (Sum & 0xFF);
+                    case INS_ADC_ABSX: {
 
-                       Flag.Z = (A == 0);
-                       Flag.N = (A & NegativeFlagBit) > 0;
-                       Flag.C = (Sum & 0xFF00) > 0;
-                       Flag.V = false;
+                        Word Address = AddrAbsoluteX(Cycles, memory);
 
-                       if (((AOld & NegativeFlagBit) ^ (Operand & NegativeFlagBit)) == 0) {
+                        Byte Operand = ReadByte(Cycles, Address, memory);
 
-                           Flag.V = (A & NegativeFlagBit) != (AOld & NegativeFlagBit);
+                        ADC(Operand);
 
-                       }
+                    }
+
+                    break;
+
+                    case INS_ADC_ABSY: {
+
+                        Word Address = AddrAbsoluteY(Cycles, memory);
+
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        ADC(Operand);
+
+                    }
+
+                    break;
+
+                    case INS_ADC_ZP: {
+
+                        Word Address = AddrZeroPage(Cycles, memory);
+
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        ADC(Operand);
+
+                    }
+
+
+                    break;
+
+                    case INS_ADC_ZPX: {
+
+                        Word Address = AddrZeroPageX(Cycles, memory);
+
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        ADC(Operand);
+
+                    }
+
+                    break;
+
+                    case INS_ADC_INDX: {
+
+                        Word Address = AddrIndirectX(Cycles, memory);
+
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        ADC(Operand);
+
+                    }
+
+                    break;
+
+                    case INS_ADC_INDY: {
+
+                        Word Address = AddrIndirectY(Cycles, memory);
+
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        ADC(Operand);
+
+                    }
+
+                    break;
+
+                    case INS_ADC: {
+
+                        Byte Operand = FetchByte(Cycles, memory);
+
+                        ADC(Operand);
 
                     }
 
