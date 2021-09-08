@@ -405,6 +405,10 @@
             INS_CLI = 0x58,
             INS_SEI = 0x78,
             INS_CLV = 0xB8,
+
+            // Arithmetic
+
+            INS_ADC_ABS = 0x6D,
             
             // Misc.
 
@@ -1193,6 +1197,36 @@
                     case INS_NOP: {
 
                         Cycles--;
+
+                    }
+
+                    break;
+
+                    case INS_ADC_ABS: {
+
+                       Word Address = AddrAbsolute(Cycles, memory);
+
+                       Byte Operand = ReadByte(Cycles, Address, memory);
+
+                       const Byte AOld = A;
+
+                       Word Sum = A;
+
+                       Sum += Operand;
+                       Sum += Flag.C;
+
+                       A = (Sum & 0xFF);
+
+                       Flag.Z = (A == 0);
+                       Flag.N = (A & NegativeFlagBit) > 0;
+                       Flag.C = (Sum & 0xFF00) > 0;
+                       Flag.V = false;
+
+                       if (((AOld & NegativeFlagBit) ^ (Operand & NegativeFlagBit)) == 0) {
+
+                           Flag.V = (A & NegativeFlagBit) != (AOld & NegativeFlagBit);
+
+                       }
 
                     }
 
