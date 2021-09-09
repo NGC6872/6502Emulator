@@ -449,6 +449,12 @@
             INS_ASL_ABS = 0x0E,
             INS_ASL_ABSX = 0x1E,
 
+            INS_LSR = 0x4A,
+            INS_LSR_ZP = 0x46,
+            INS_LSR_ZPX = 0x56,
+            INS_LSR_ABS = 0x4E,
+            INS_LSR_ABSX = 0x5E,
+
             // Misc.
 
             INS_NOP = 0xEA;
@@ -565,6 +571,7 @@
 
             };
 
+            // Arithmetic shift left
             auto ASL = [&Cycles, this](Byte Operand) -> Byte {
 
                 Flag.C = (Operand & NegativeFlagBit) > 0;
@@ -574,6 +581,19 @@
 
                 return Result;
 
+            };
+
+            // Logical shift right
+            auto LSR = [&Cycles, this](Byte Operand) -> Byte {
+
+                constexpr Byte BitZero = 0b00000001;
+
+                Flag.C = (Operand & BitZero) > 0;
+                Byte Result = Operand >> 1;
+                SetZeroAndNegativeFlags(Result);
+                Cycles--;
+
+                return Result;
             };
 
             const s32 CyclesRequested = Cycles;
@@ -1594,6 +1614,62 @@
                         Byte Operand = ReadByte(Cycles, Address, memory);
 
                         Byte Result = ASL(Operand);
+
+                        WriteByte(Result, Cycles, Address, memory);
+
+                    }
+
+                    break;
+
+                    case INS_LSR: {
+
+                        A = LSR(A);
+
+                    }
+
+                    break;
+
+                    case INS_LSR_ZP: {
+
+                        Word Address = AddrZeroPage(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+                        Byte Result = LSR(Operand);
+                       
+                        WriteByte(Result, Cycles, Address, memory);
+
+                    }
+
+                    break;
+
+                    case INS_LSR_ZPX: {
+
+                        Word Address = AddrZeroPageX(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+                        Byte Result = LSR(Operand);
+
+                        WriteByte(Result, Cycles, Address, memory);
+
+                    }
+
+                    break;
+
+                    case INS_LSR_ABS: {
+
+                        Word Address = AddrAbsolute(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+                        Byte Result = LSR(Operand);
+
+                        WriteByte(Result, Cycles, Address, memory);
+
+                    }
+
+                    break;
+
+                    case INS_LSR_ABSX: {
+
+                        Word Address = AddrAbsoluteX_5(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+                        Byte Result = LSR(Operand);
 
                         WriteByte(Result, Cycles, Address, memory);
 
