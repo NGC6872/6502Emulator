@@ -420,7 +420,7 @@
             INS_ADC_INDY = 0x71,
 
 
-            INS_SEC_ABS = 0xED,
+            INS_SEC_ABS = 0xED, // not used anywhere yet?
 
             INS_SBC_ABS = 0xED,
             // Register Comparison
@@ -441,6 +441,13 @@
             INS_CPX_ABS = 0xEC,
             INS_CPY_ABS = 0xCC,
 
+            // Shift instructions
+
+            INS_ASL = 0x0A,
+            INS_ASL_ZP = 0x06,
+            INS_ASL_ZPX = 0x16,
+            INS_ASL_ABS = 0x0E,
+            INS_ASL_ABSX = 0x1E,
 
             // Misc.
 
@@ -555,6 +562,17 @@
                 Flag.Z = RegisterValue == Operand;
                 Flag.C = RegisterValue >= Operand;
 
+
+            };
+
+            auto ASL = [&Cycles, this](Byte Operand) -> Byte {
+
+                Flag.C = (Operand & NegativeFlagBit) > 0;
+                Byte Result = Operand << 1;
+                SetZeroAndNegativeFlags(Result);
+                Cycles--;
+
+                return Result;
 
             };
 
@@ -1523,6 +1541,65 @@
 
                     break;
 
+                    case INS_ASL: {
+
+                        A = ASL(A);
+
+                    }
+
+                    break;
+
+                    case INS_ASL_ZP: {
+
+                        Word Address = AddrZeroPage(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        Byte Result = ASL(Operand);
+
+                        WriteByte(Result, Cycles, Address, memory);
+
+                    }
+
+                    break;
+
+                    case INS_ASL_ZPX: {
+
+                        Word Address = AddrZeroPageX(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        Byte Result = ASL(Operand);
+
+                        WriteByte(Result, Cycles, Address, memory);
+
+                    }
+
+                    break;
+
+                    case INS_ASL_ABS: {
+
+                        Word Address = AddrAbsolute(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        Byte Result = ASL(Operand);
+
+                        WriteByte(Result, Cycles, Address, memory);
+
+                    }
+
+                    break;
+
+                    case INS_ASL_ABSX: {
+
+                        Word Address = AddrAbsoluteX_5(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        Byte Result = ASL(Operand);
+
+                        WriteByte(Result, Cycles, Address, memory);
+
+                    }
+
+                    break;
 
                     case INS_LDA_ABS: {
 
