@@ -251,7 +251,8 @@
         static constexpr Byte
 
             NegativeFlagBit = 0b10000000,
-            OverflowFlagBit = 0b01000000;
+            OverflowFlagBit = 0b01000000,
+            ZeroBit = 0b00000001;
 
         static constexpr Byte
 
@@ -461,6 +462,12 @@
             INS_ROL_ABS = 0x2E,
             INS_ROL_ABSX = 0x3E,
 
+
+            INS_ROR = 0x6A,
+            INS_ROR_ZP = 0x66,
+            INS_ROR_ZPX = 0x76,
+            INS_ROR_ABS = 0x6E,
+            INS_ROR_ABSX = 0x7E,
             // Misc.
 
             INS_NOP = 0xEA;
@@ -592,9 +599,7 @@
             // Logical shift right
             auto LSR = [&Cycles, this](Byte Operand) -> Byte {
 
-                constexpr Byte BitZero = 0b00000001;
-
-                Flag.C = (Operand & BitZero) > 0;
+                Flag.C = (Operand & ZeroBit) > 0;
                 Byte Result = Operand >> 1;
                 SetZeroAndNegativeFlags(Result);
                 Cycles--;
@@ -606,13 +611,35 @@
 
             auto ROL = [&Cycles, this](Byte Operand) -> Byte {
 
-                Byte NewBit1 = Flag.C ? 0b00000001 : 0;
+                Byte NewBit0 = Flag.C ? ZeroBit : 0;
                 Flag.C = (Operand & NegativeFlagBit) > 0;
 
                 Operand = Operand << 1;
-                Operand |= NewBit1;
+                Operand |= NewBit0;
                 SetZeroAndNegativeFlags(Operand);
                 Cycles--;
+
+                return Operand;
+
+            };
+
+            auto ROR = [&Cycles, this](Byte Operand) -> Byte {
+
+                bool OldBit0 = (Operand & ZeroBit) > 0;
+
+                Operand = Operand >> 1;
+
+                if (Flag.C) {
+
+                    Operand |= NegativeFlagBit;
+
+                }
+
+                Cycles--;
+
+                Flag.C = OldBit0;
+
+                SetZeroAndNegativeFlags(Operand);
 
                 return Operand;
 
@@ -1744,6 +1771,67 @@
 
                     }
 
+                    break;
+
+                    case INS_ROR: {
+
+                        A = ROR(A);
+
+                    }
+
+                    break;
+
+                    case INS_ROR_ZP: {
+
+                        Word Address = AddrZeroPage(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        Byte Result = ROR(Operand);
+
+
+                        WriteByte(Operand, Cycles, Address, memory);
+
+
+                    }
+                    break;
+
+                    case INS_ROR_ZPX: {
+
+                        Word Address = AddrZeroPageX(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        Byte Result = ROR(Operand);
+
+
+                        WriteByte(Operand, Cycles, Address, memory);
+
+
+                    }
+                    break;
+
+                    case INS_ROR_ABS: {
+
+                        Word Address = AddrAbsolute(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        Byte Result = ROR(Operand);
+
+
+                        WriteByte(Operand, Cycles, Address, memory);
+
+                    }
+                    break;
+
+                    case INS_ROR_ABSX: {
+
+                        Word Address = AddrAbsoluteX_5(Cycles, memory);
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        Byte Result = ROR(Operand);
+
+                        WriteByte(Operand, Cycles, Address, memory);
+
+                    }
                     break;
 
                     case INS_ROL_ABSX: {
