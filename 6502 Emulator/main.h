@@ -213,6 +213,14 @@
         } // Function PushPCToStack()
 //      =============================
 
+//      =====================================================
+        void PushPCPlusOneToStack(s32& Cycles, Mem& memory) {
+
+            PushWordToStack(Cycles, memory, PC + 1);
+
+        } // Function PushPCPlusOneToStack()
+//      ====================================
+
 //      ============================================================
         void PushWordToStack(s32& Cycles, Mem& memory, Word Value) {
 
@@ -331,6 +339,7 @@
 //          STX Opcodes
 //          =================
             INS_STX_ZP = 0x86,
+            INS_STX_ZPY = 0x96,
             INS_STX_ABS = 0x8E,
 //          ===========
 //          STY Opcodes
@@ -449,7 +458,15 @@
 
             INS_SEC_ABS = 0xED, // not used anywhere yet?
 
+            INS_SBC = 0xE9,
             INS_SBC_ABS = 0xED,
+            INS_SBC_ZP = 0xE5,
+            INS_SBC_ZPX = 0xF5,
+            INS_SBC_ABSX = 0xFD,
+            INS_SBC_ABSY = 0xF9,
+            INS_SBC_INDX = 0xE1,
+            INS_SBC_INDY = 0xF1,
+
             // Register Comparison
 
             INS_CMP = 0xC9,
@@ -565,9 +582,11 @@
                     PC += Offset;
                     Cycles--;
 
-                    if ((PC >> 8) != (OldPC >> 8)) { // page changed
+                    const bool PageChanged = (PC >> 8) != (OldPC >> 8);
 
-                        Cycles -= 2;
+                    if (PageChanged) { // page changed
+
+                        Cycles--;
 
                     }
 
@@ -675,26 +694,20 @@
 
             };
 
-            auto PushPSToStack = [&Cycles, &memory, this](bool SetIntDisableFlagAfter) {
+            auto PushPSToStack = [&Cycles, &memory, this]() {
 
                 Byte PS_Stack = PS | BreakFlagBit | UnusedFlagBit;
 
                 PushByteOntoStack(Cycles, PS_Stack, memory);
 
-                if (SetIntDisableFlagAfter) {
-
-                    Flag.I = true;
-                   
-                }
-
             };
 
             auto PopPSFromStack = [&Cycles, &memory, this]() {
 
-                Byte PSFromStack = PopByteFromStack(Cycles, memory);
-                PSFromStack &= ~(UnusedFlagBit | BreakFlagBit);
-                PS &= (UnusedFlagBit | BreakFlagBit);
-                PS |= PSFromStack;
+                PS = PopByteFromStack(Cycles, memory);
+
+                Flag.B = false;
+                Flag.Unused = false;
 
             };
 
@@ -1083,8 +1096,8 @@
 
                     case INS_PHP: {
 
-                        constexpr bool SetIntDisableFlagAfter = false;
-                        PushPSToStack(SetIntDisableFlagAfter);
+                        
+                        PushPSToStack();
 
                     }
 
@@ -1522,7 +1535,89 @@
 
                         Byte Operand = ReadByte(Cycles, Address, memory);
 
-                        SBC(~Operand);
+                        SBC(Operand);
+
+                    }
+
+                    break;
+
+                    case INS_SBC_ABSX: {
+
+                        Word Address = AddrAbsoluteX(Cycles, memory);
+
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        SBC(Operand);
+
+                    }
+
+                    break;
+
+                    case INS_SBC_ABSY: {
+
+                        Word Address = AddrAbsoluteY(Cycles, memory);
+
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        SBC(Operand);
+
+                    }
+
+                    break;
+
+                    case INS_SBC_INDX: {
+
+                        Word Address = AddrIndirectX(Cycles, memory);
+
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        SBC(Operand);
+
+                    }
+
+                    break;
+
+                    case INS_SBC_INDY: {
+
+                        Word Address = AddrIndirectY(Cycles, memory);
+
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        SBC(Operand);
+
+                    }
+
+                    break;
+
+                    case INS_SBC: {
+
+                        Byte Operand = FetchByte(Cycles, memory);
+
+                        SBC(Operand);
+
+                    }
+
+                    break;
+
+                    case INS_SBC_ZP: {
+
+                        Word Address = AddrZeroPage(Cycles, memory);
+
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        SBC(Operand);
+
+                    }
+
+                    break;
+
+                    case INS_SBC_ZPX: {
+
+                        Word Address = AddrZeroPageX(Cycles, memory);
+
+                        Byte Operand = ReadByte(Cycles, Address, memory);
+
+                        SBC(Operand);
 
                     }
 
@@ -1899,14 +1994,15 @@
 
                     case INS_BRK: {
   
-                        PushPCToStack(Cycles, memory);
+                        PushPCPlusOneToStack(Cycles, memory);
                         constexpr bool SetIntDisableFlagAfter = true;
 
-                        PushPSToStack(SetIntDisableFlagAfter);
+                        PushPSToStack();
 
                         constexpr Word InterruptVector = 0xFFFE;
                         PC = ReadWord(Cycles, InterruptVector, memory);
                         Flag.B = true;
+                        Flag.I = true;
 
                     }
                     
@@ -1914,10 +2010,10 @@
 
                     case INS_RTI: {
 
-                        PS = PopByteFromStack(Cycles, memory);
-                       // PopPSFromStack();
+                        PopPSFromStack();
+
                         PC = PopWordFromStack(Cycles, memory);
-                        
+
                     }
 
                     break;
@@ -2026,6 +2122,14 @@
                     case INS_STX_ZP: {
 
                         Word Address = AddrZeroPage(Cycles, memory);
+                        WriteByte(X, Cycles, Address, memory);
+
+                    }
+                    break;
+
+                    case INS_STX_ZPY: {
+
+                        Word Address = AddrZeroPageY(Cycles, memory);
                         WriteByte(X, Cycles, Address, memory);
 
                     }
@@ -2184,10 +2288,12 @@
 
             Word AbsAddress = FetchWord(Cycles, memory);
             Word AbsAddressX = AbsAddress + X;
-            A = ReadByte(Cycles, AbsAddressX, memory);
+           
+            bool CrossedPageBoundary = (AbsAddress ^ AbsAddressX) >> 8;
 
-            if (AbsAddressX - AbsAddress >= 0xFF)
+            if (CrossedPageBoundary) {
                 Cycles--;
+            }
 
             return AbsAddressX;
 
@@ -2212,10 +2318,12 @@
 
             Word AbsAddress = FetchWord(Cycles, memory);
             Word AbsAddressY = AbsAddress + Y;
-            A = ReadByte(Cycles, AbsAddressY, memory);
+            
+            bool CrossedPageBoundary = (AbsAddress ^ AbsAddressY) >> 8;
 
-            if (AbsAddressY - AbsAddress >= 0xFF)
+            if (CrossedPageBoundary) {
                 Cycles--;
+            }
 
             return AbsAddressY;
 
@@ -2256,8 +2364,11 @@
             Word EffectiveAddr = ReadWord(Cycles, ZPAddress, memory);
             Word EffectiveAddrY = EffectiveAddr + Y;
 
-            if (EffectiveAddrY - EffectiveAddr >= 0xFF)
+            bool CrossedPageBoundary = (EffectiveAddr ^ EffectiveAddrY) >> 8;
+
+            if (CrossedPageBoundary) {
                 Cycles--;
+            }
 
             return EffectiveAddrY;
 
