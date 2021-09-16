@@ -197,15 +197,35 @@
 //      ========================
 
 //      Push the PC-1 onto the stack
+//      ======================================================
+        void PushPCMinusOneToStack(s32& Cycles, Mem& memory) {
+
+            PushWordToStack(Cycles, memory, PC - 1);
+
+        } // Function PushPCMinusOneToStack()
+//      =====================================
+
 //      ==============================================
         void PushPCToStack(s32& Cycles, Mem& memory) {
 
-            WriteWord(PC - 1, Cycles, SPToAddress() - 1, memory);
-
-            SP -= 2;
+            PushWordToStack(Cycles, memory, PC);
 
         } // Function PushPCToStack()
 //      =============================
+
+//      ============================================================
+        void PushWordToStack(s32& Cycles, Mem& memory, Word Value) {
+
+            WriteByte(Value >> 8, Cycles, SPToAddress(), memory);
+
+            SP--;
+
+            WriteByte(Value & 0xFF, Cycles, SPToAddress(), memory);
+
+            SP--;
+
+        } // Function PushWordToStack()
+//      ===============================
 
 //      ==============================================================
         void PushByteOntoStack(s32& Cycles, Byte Value, Mem& memory) {
@@ -225,10 +245,12 @@
         Byte PopByteFromStack(s32& Cycles, Mem& memory) {
 
             SP++;
+            Cycles--;
+
             Word SP16Bit = SPToAddress();
             Byte Value = memory[SP16Bit];
 
-            Cycles -= 3;
+            Cycles--;
 
             return Value;
 
@@ -470,7 +492,11 @@
             INS_ROR_ABSX = 0x7E,
             // Misc.
 
-            INS_NOP = 0xEA;
+                
+            INS_NOP = 0xEA,
+            INS_BRK = 0x00,
+            INS_RTI = 0x40;
+
 
 //      ===========================================
         void SetZeroAndNegativeFlags(Byte Register) {
@@ -956,7 +982,7 @@
     
                         Word SubAddr = FetchWord(Cycles, memory);
                         
-                        PushPCToStack(Cycles, memory);
+                        PushPCMinusOneToStack(Cycles, memory);
 
 
                         PC = SubAddr;
@@ -1021,6 +1047,7 @@
 
                         A = PopByteFromStack(Cycles, memory);
                         SetZeroAndNegativeFlags(A);
+                        Cycles--;
                     }
                     break;
 
@@ -1034,7 +1061,8 @@
                     case INS_PLP: {
 
                         PS = PopByteFromStack(Cycles, memory);
-                       
+                        Cycles--;
+
                     }
                     break;
 
@@ -1832,6 +1860,29 @@
                         WriteByte(Operand, Cycles, Address, memory);
 
                     }
+
+                    break;
+
+                    case INS_BRK: {
+  
+                        PushPCToStack(Cycles, memory);
+                        PushByteOntoStack(Cycles, PS, memory);
+
+                        constexpr Word InterruptVector = 0xFFFE;
+                        PC = ReadWord(Cycles, InterruptVector, memory);
+                        Flag.B = true;
+
+                    }
+                    
+                    break;
+
+                    case INS_RTI: {
+
+                        PS = PopByteFromStack(Cycles, memory);
+                        PC = PopWordFromStack(Cycles, memory);
+                        
+                    }
+
                     break;
 
                     case INS_ROL_ABSX: {
