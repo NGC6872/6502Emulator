@@ -68,14 +68,14 @@
     
     struct m6502::StatusFlags {
 
-        Byte C : 1;
-        Byte Z : 1;
-        Byte I : 1;
-        Byte D : 1;
-        Byte B : 1;
-        Byte Unused : 1;
-        Byte V : 1;
-        Byte N : 1;
+        Byte C : 1;      // Carry flag
+        Byte Z : 1;      // Zero flag
+        Byte I : 1;      // Interrupt Disable
+        Byte D : 1;      // Decimal Mode
+        Byte B : 1;      // Break
+        Byte Unused : 1; // Unused
+        Byte V : 1;      // Overflow
+        Byte N : 1;      // Negative
 
     };
 
@@ -274,6 +274,10 @@
 
             NegativeFlagBit = 0b10000000,
             OverflowFlagBit = 0b01000000,
+
+            BreakFlagBit = 0b000010000,
+            UnusedFlagBit = 0b000100000,
+
             ZeroBit = 0b00000001;
 
         static constexpr Byte
@@ -671,6 +675,29 @@
 
             };
 
+            auto PushPSToStack = [&Cycles, &memory, this](bool SetIntDisableFlagAfter) {
+
+                Byte PS_Stack = PS | BreakFlagBit | UnusedFlagBit;
+
+                PushByteOntoStack(Cycles, PS_Stack, memory);
+
+                if (SetIntDisableFlagAfter) {
+
+                    Flag.I = true;
+                   
+                }
+
+            };
+
+            auto PopPSFromStack = [&Cycles, &memory, this]() {
+
+                Byte PSFromStack = PopByteFromStack(Cycles, memory);
+                PSFromStack &= ~(UnusedFlagBit | BreakFlagBit);
+                PS &= (UnusedFlagBit | BreakFlagBit);
+                PS |= PSFromStack;
+
+            };
+
             const s32 CyclesRequested = Cycles;
 
             while (Cycles > 0) {
@@ -1026,6 +1053,7 @@
                         SetZeroAndNegativeFlags(X);
 
                     }
+
                     break;
 
                     case INS_TXS: {
@@ -1033,6 +1061,7 @@
                         SP = X;
                         
                     }
+
                     break;
 
                     case INS_PHA : {
@@ -1041,6 +1070,7 @@
                         Cycles--;
 
                     }
+
                     break;
 
                     case INS_PLA: {
@@ -1053,17 +1083,20 @@
 
                     case INS_PHP: {
 
-                        PushByteOntoStack(Cycles, PS, memory);
+                        constexpr bool SetIntDisableFlagAfter = false;
+                        PushPSToStack(SetIntDisableFlagAfter);
 
                     }
+
                     break;
 
                     case INS_PLP: {
 
-                        PS = PopByteFromStack(Cycles, memory);
+                        PopPSFromStack();
                         Cycles--;
 
                     }
+
                     break;
 
                     case INS_TAX: {
@@ -1072,6 +1105,7 @@
                        Cycles--;
                        SetZeroAndNegativeFlags(X);
                     }
+
                     break;
 
                     case INS_TAY: {
@@ -1866,7 +1900,9 @@
                     case INS_BRK: {
   
                         PushPCToStack(Cycles, memory);
-                        PushByteOntoStack(Cycles, PS, memory);
+                        constexpr bool SetIntDisableFlagAfter = true;
+
+                        PushPSToStack(SetIntDisableFlagAfter);
 
                         constexpr Word InterruptVector = 0xFFFE;
                         PC = ReadWord(Cycles, InterruptVector, memory);
@@ -1879,6 +1915,7 @@
                     case INS_RTI: {
 
                         PS = PopByteFromStack(Cycles, memory);
+                       // PopPSFromStack();
                         PC = PopWordFromStack(Cycles, memory);
                         
                     }
