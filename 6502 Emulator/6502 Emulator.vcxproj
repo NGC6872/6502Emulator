@@ -139,10 +139,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CPU.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Memory.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="main.h" />
+    <ClInclude Include="CPU.h" />
+    <ClInclude Include="Memory.h" />
+    <ClInclude Include="Opcodes.h" />
+    <ClInclude Include="StatusFlags.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

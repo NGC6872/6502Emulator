@@ -1,13 +1,13 @@
-#include "main.h"
-
-using namespace m6502;
+#include <iostream>
+#include "CPU.h"
+#include "Memory.h"
 
 //  ============
 	int main() {
 	
 		Byte Program[] = { 0x0,0x10,0xA9,0x00,0x85,0x42,0xE6,0x42,0xA6,0x42,0xE8,0x4C,0x04,0x10 };
 
-		Mem mem;
+		Memory mem;
 		CPU cpu;
 
 		std::cout << "Resetting CPU..." << std::endl;
@@ -25,13 +25,11 @@ using namespace m6502;
 		std::cout << "Start address: ";
 
 		printf("%d\n", StartAddress);
-		
+
 		cpu.PC = StartAddress;
 		std::cout << std::endl << "Program counter: ";
 		printf("%d\n", cpu.PC);
 		std::cout << std::endl;
-
-		// using u32 instead of s32 for the clock was causing this to get stuck in an infinite loop before.
 
 		for (s32 Clock = 1000; Clock > 0;) {
 
@@ -41,7 +39,6 @@ using namespace m6502;
 			printf("PC: %d SP: %d\n", cpu.PC, cpu.SP);
 
 			std::cout << std::endl;
-			
 		}
 
 	  return 0;
