@@ -11,7 +11,7 @@ This is a switch-case based implementation of the 6502. There are a few differen
                 Byte Program[] = { 0x0,0x10,0xA9,0x00,0x85,0x42,0xE6,0x42,0xA6,0x42,0xE8,0x4C,0x04,0x10 };
 
                 // Initialize the CPU and memory
-		Mem mem;
+		Memory mem;
 		CPU cpu;
 		
 		// Reset the CPU
